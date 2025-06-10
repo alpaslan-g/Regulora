@@ -37,12 +37,11 @@ dependencies {
 
     // Jetpack Compose
     implementation(platform("androidx.compose:compose-bom:2023.10.01")) // Recommended: Use Compose BOM
+    implementation("androidx.compose.material:material-icons-core:1.6.0")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    // implementation("androidx.compose.material:material:1.5.3") // This is Compose Material (M2)
-    // You can keep it if you have M2 components,
-    // or remove if fully migrating to M3 in Compose
     implementation("androidx.compose.material3:material3") // For Compose Material 3 components
 
     // Material Components for Android (for XML themes like Theme.Material3.*)
