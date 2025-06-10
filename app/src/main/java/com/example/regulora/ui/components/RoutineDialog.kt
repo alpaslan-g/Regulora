@@ -7,6 +7,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.regulora.data.model.*
+import com.example.regulora.data.model.Comparator
+import com.example.regulora.data.*
 import java.util.*
 
 @Composable
