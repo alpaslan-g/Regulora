@@ -17,7 +17,7 @@ data class ConditionGroup(
 
 data class ActuatorRule(
     val actuatorName: String,
-    val conditionGroup: ConditionGroup,
+    val conditionGroup: ConditionGroup? = null,
     val action: String // "ON" or "OFF"
 )
 

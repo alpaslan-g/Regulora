@@ -41,7 +41,7 @@ fun RoutineManagerScreen(viewModel: RoutineViewModel) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         Text("Von ${routine.startTime} bis ${routine.endTime}")
                         routine.actuatorRules.forEach { rule ->
-                            Text("→ ${rule.actuatorName}: ${rule.action} falls ${rule.conditionGroup.conditions.joinToString { "${it.sensorType} ${it.comparator} ${it.value}" }}")
+                            Text("→ ${rule.actuatorName}: ${rule.action} falls ${rule.conditionGroup!!.conditions.joinToString { "${it.sensorType} ${it.comparator} ${it.value}" }}")
                         }
                     }
                 }

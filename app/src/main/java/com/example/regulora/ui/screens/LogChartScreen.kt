@@ -7,7 +7,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.regulora.data.SensorEntry
 import com.example.regulora.ui.components.ChartView
 import com.example.regulora.ui.components.StatsRow
 import com.github.mikephil.charting.data.*
@@ -17,17 +16,6 @@ import com.github.mikephil.charting.data.*
 fun LogChartScreen() {
     val context = LocalContext.current
 
-    // Dummy Messdaten
-    val entries = remember {
-        List(100) { i ->
-            SensorEntry(
-                timestamp = System.currentTimeMillis() - (100 - i) * 60_000L,
-                temperature = 20f + (0..10).random(),
-                humidity = 50f + (0..5).random(),
-                soil = 30f + (0..15).random()
-            )
-        }
-    }
 
     val tempValues = entries.mapIndexed { idx, e -> Entry(idx.toFloat(), e.temperature) }
     val humidityValues = entries.mapIndexed { idx, e -> Entry(idx.toFloat(), e.humidity) }

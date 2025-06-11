@@ -1,13 +1,14 @@
 package com.example.regulora.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.regulora.data.model.*
-import com.example.regulora.data.model.TimeRoutine
 
 @Composable
 fun RoutineDialog(
@@ -18,7 +19,13 @@ fun RoutineDialog(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
 
-    // Zustand für Regeln je Aktuator
+    // Pro Aktuator: Aktionsmodus
+    val actionModes = remember {
+        mutableStateMapOf<String, String>().apply {
+            actuatorNames.forEach { put(it, "ALWAYS_ON") }
+        }
+    }
+
     val ruleConditions = remember {
         mutableStateMapOf<String, MutableList<SensorCondition>>()
     }
@@ -31,20 +38,35 @@ fun RoutineDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             Button(onClick = {
-                val rules = actuatorNames.associateWith { actuator ->
-                    val conditions = ruleConditions[actuator] ?: emptyList()
-                    val op = selectedOperators[actuator] ?: LogicalOperator.AND
-                    ConditionGroup(conditions, op)
+                val actuatorRules = actuatorNames.map { actuator ->
+                    val mode = actionModes[actuator]
+                    val conditionGroup = if (mode == "CONDITIONAL") {
+                        ConditionGroup(
+                            ruleConditions[actuator]?.toList() ?: emptyList(),
+                            selectedOperators[actuator] ?: LogicalOperator.AND
+                        )
+                    } else {
+                        ConditionGroup(emptyList())
+                    }
+
+                    val action = when (mode) {
+                        "ALWAYS_ON" -> "ON"
+                        "ALWAYS_OFF" -> "OFF"
+                        else -> "ON" // Default
+                    }
+
+                    ActuatorRule(
+                        actuatorName = actuator,
+                        conditionGroup = conditionGroup,
+                        action = action
+                    )
                 }
 
                 onConfirm(
                     TimeRoutine(
-                        id = System.currentTimeMillis().toString(),
                         startTime = startTime,
                         endTime = endTime,
-                        actuatorRules = rules.map { (actuatorName, conditionGroup) ->
-                            ActuatorRule(actuatorName, conditionGroup, action = "ON") // oder "OFF" – falls konfigurierbar
-                        }
+                        actuatorRules = actuatorRules
                     )
                 )
             }) {
@@ -58,73 +80,113 @@ fun RoutineDialog(
         },
         title = { Text("Routine erstellen") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 600.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(8.dp)
+            ) {
                 OutlinedTextField(
                     value = startTime,
                     onValueChange = { startTime = it },
-                    label = { Text("Startzeit (z.B. 08:00)") },
+                    label = { Text("Startzeit (z. B. 08:00)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = endTime,
                     onValueChange = { endTime = it },
-                    label = { Text("Endzeit (z.B. 12:00)") },
+                    label = { Text("Endzeit (z. B. 20:00)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 actuatorNames.forEach { actuator ->
-                    Text("Regeln für Aktuator: $actuator", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "Aktuator: $actuator",
+                        style = MaterialTheme.typography.titleMedium
+                    )
 
-                    val localConditions = ruleConditions.getOrPut(actuator) { mutableListOf() }
-                    val selectedOperator = selectedOperators.getOrPut(actuator) { LogicalOperator.AND }
+                    var localMode by remember { mutableStateOf(actionModes[actuator] ?: "ALWAYS_ON") }
+                    actionModes[actuator] = localMode
 
-                    // Logik-Operator
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        LogicalOperator.values().forEach { op ->
-                            Row {
-                                RadioButton(
-                                    selected = selectedOperator == op,
-                                    onClick = { selectedOperators[actuator] = op }
-                                )
-                                Text(text = op.name)
-                            }
-                        }
+                    DropdownMenuBox(
+                        title = "Modus wählen",
+                        options = listOf("ALWAYS_ON", "ALWAYS_OFF", "CONDITIONAL"),
+                        selected = localMode
+                    ) {
+                        localMode = it
+                        actionModes[actuator] = it
                     }
 
-                    localConditions.forEachIndexed { index, condition ->
-                        Text("- ${condition.sensorType.name} ${condition.comparator.name} ${condition.value}")
-                    }
+                    if (localMode == "CONDITIONAL") {
+                        val localConditions = ruleConditions.getOrPut(actuator) { mutableListOf() }
+                        val usedSensors = localConditions.map { it.sensorType }
+                        val availableSensors = SensorType.values().filter { it !in usedSensors }
 
-                    var sensorType by remember { mutableStateOf(SensorType.TEMPERATURE) }
-                    var comparator by remember { mutableStateOf(Comparator.LT) }
-                    var value by remember { mutableStateOf("") }
+                        val selectedOperator = selectedOperators.getOrPut(actuator) { LogicalOperator.AND }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        DropdownMenuBox(title = "Sensor", options = SensorType.values().toList(), selected = sensorType) {
-                            sensorType = it
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        DropdownMenuBox(title = "Vergleich", options = Comparator.values().toList(), selected = comparator) {
-                            comparator = it
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        OutlinedTextField(
-                            value = value,
-                            onValueChange = { value = it },
-                            label = { Text("Wert") },
-                            modifier = Modifier.width(80.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Button(onClick = {
-                            value.toFloatOrNull()?.let {
-                                localConditions.add(
-                                    SensorCondition(sensorType, comparator, it)
-                                )
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            LogicalOperator.values().forEach { op ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RadioButton(
+                                        selected = selectedOperator == op,
+                                        onClick = { selectedOperators[actuator] = op }
+                                    )
+                                    Text(op.name)
+                                }
                             }
-                        }) {
-                            Text("+")
+                        }
+
+                        localConditions.forEach {
+                            Text("- ${it.sensorType} ${it.comparator} ${it.value}")
+                        }
+
+                        if (availableSensors.isNotEmpty()) {
+                            var sensorType by remember { mutableStateOf(availableSensors.first()) }
+                            var comparator by remember { mutableStateOf(Comparator.LT) }
+                            var value by remember { mutableStateOf("") }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                DropdownMenuBox(
+                                    title = "Sensor",
+                                    options = availableSensors,
+                                    selected = sensorType
+                                ) { sensorType = it }
+
+                                Spacer(Modifier.width(4.dp))
+
+                                DropdownMenuBox(
+                                    title = "Vergleich",
+                                    options = Comparator.values().toList(),
+                                    selected = comparator
+                                ) { comparator = it }
+
+                                Spacer(Modifier.width(4.dp))
+
+                                OutlinedTextField(
+                                    value = value,
+                                    onValueChange = { value = it },
+                                    label = { Text("Wert") },
+                                    modifier = Modifier.width(80.dp)
+                                )
+
+                                Spacer(Modifier.width(4.dp))
+
+                                Button(onClick = {
+                                    value.toFloatOrNull()?.let {
+                                        localConditions.add(SensorCondition(sensorType, comparator, it))
+                                    }
+                                }) {
+                                    Text("+")
+                                }
+                            }
+                        } else {
+                            Text("Alle Sensoren wurden verwendet.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
 
@@ -144,18 +206,21 @@ fun <T> DropdownMenuBox(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Column {
-        Text(text = title)
+    Column(modifier = Modifier.padding(bottom = 4.dp)) {
+        Text(title)
         Box {
             OutlinedButton(onClick = { expanded = true }) {
                 Text(selected.toString())
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach {
-                    DropdownMenuItem(text = { Text(it.toString()) }, onClick = {
-                        onSelect(it)
-                        expanded = false
-                    })
+                    DropdownMenuItem(
+                        text = { Text(it.toString()) },
+                        onClick = {
+                            onSelect(it)
+                            expanded = false
+                        }
+                    )
                 }
             }
         }
