@@ -57,11 +57,11 @@ fun RoutineManagerScreen(viewModel: RoutineViewModel) {
         if (showDialog) {
             RoutineDialog(
                 onDismiss = { showDialog = false },
-                onSave = {
+                onConfirm = {
                     viewModel.addTimeRoutine(it)
                     showDialog = false
                 },
-                availableActuators = viewModel.getAvailableActuators()
+                actuatorNames = viewModel.getAvailableActuators()
             )
         }
     }

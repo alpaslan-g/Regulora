@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.compose.runtime.remember
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.example.regulora.data.model.TimeRoutine
 import com.example.regulora.ui.screens.MainScreen
 import com.example.regulora.ui.screens.RoutineManagerScreen
 import com.example.regulora.ui.viewmodel.RoutineViewModel
