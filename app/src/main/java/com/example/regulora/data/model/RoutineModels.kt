@@ -30,5 +30,5 @@ data class TimeRoutine(
 
 data class DailyRoutine(
     val name: String,
-    val routines: List<TimeRoutine>
+    val routines: MutableList<TimeRoutine>
 )
